@@ -1,6 +1,10 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -25,7 +29,9 @@ namespace MQTT_DesktopClient
 
         MqttClient client;
         string clientId;
-        string txtReceived;
+        string currentState;
+        SolidColorBrush brush = new();
+
 
 
         // this code runs when the main window opens (start of the app)
@@ -41,6 +47,31 @@ namespace MQTT_DesktopClient
             clientId = Guid.NewGuid().ToString();
 
             client.Connect(clientId);
+
+            var url = "https://localhost:5001/api/Mqtt/light";
+
+            var request = WebRequest.Create(url);
+            request.Method = "GET";
+
+            using var webResponse = request.GetResponse();
+            using var webStream = webResponse.GetResponseStream();
+
+            using var reader = new StreamReader(webStream);
+            var data = JsonConvert.DeserializeObject(reader.ReadToEnd()).ToString() ?? "0";
+
+            var index = data.IndexOf("msg") + 4;
+
+            currentState = data.Substring(index + 3, 1);
+
+            if (currentState == "1")
+            {
+                brush.Color = Colors.LightYellow;
+            }
+            else if (currentState == "0")
+            {
+                brush.Color = Colors.LightGray;
+            }
+            grid.Background = brush;
         }
 
         // this code runs when the main window closes (end of the app)
@@ -57,7 +88,19 @@ namespace MQTT_DesktopClient
         {
             string Topic = "home/light";
             // publish a message
-            client.Publish(Topic, Encoding.UTF8.GetBytes("light"), MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE, true);
+            if (currentState == "1")
+            {
+                client.Publish(Topic, Encoding.UTF8.GetBytes("0"), MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE, true);
+                currentState = "0";
+                brush.Color = Colors.LightGray;
+            }
+            else if (currentState == "0")
+            {
+                client.Publish(Topic, Encoding.UTF8.GetBytes("1"), MqttMsgBase.QOS_LEVEL_EXACTLY_ONCE, true);
+                currentState = "1";
+                brush.Color = Colors.LightYellow;
+            }
+            grid.Background = brush;
         }
     }
 }

@@ -12,7 +12,7 @@
             <Setter Property="Height" Value="50" />
         </Style>
     </Window.Resources>
-    <Grid>
-        <Button Click="BtnPublish_Click">Licht umschalten</Button>
+    <Grid x:Name="grid">
+        <Button Name="btn"  Click="BtnPublish_Click">Licht umschalten</Button>
     </Grid>
 </Window>
